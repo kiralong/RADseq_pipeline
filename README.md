@@ -59,6 +59,7 @@ Download your reference genome. (For my species I used: *M. vitellinus* GenBank 
 Use [BWA](http://bio-bwa.sourceforge.net/) mem (Li & Durbin 2009) to align your RAD reads. You'll first need to make a BWA reference index. 
 
 ```bash
+#!/bin/bash
 #Create a BWA reference index
 bwa index /path/to/reference.fasta.gz
 
@@ -69,6 +70,7 @@ bwa index /path/to/reference.fasta.gz
 Now that you have made your index (referred to as your 'database' in the following example), run bwa. You can follow the below sample code:
 
 ```bash
+#!/bin/bash
 cat $sample_names_path | cut -f 2 |
   while read sample
   do
@@ -88,8 +90,7 @@ Note that this script and the example code pipes the bwa alignments directly int
 
 Sort and process your aligned reads with `samtools`.
 
-Use samtools (Li et al. 2009). May need to install in computing cluster.
-(http://www.htslib.org/)
+Use [samtools](http://www.htslib.org/) (Li et al. 2009). May need to install in computing cluster.
 
 See the file [`bwa_alignment.sh`](bwa_alignment.sh) and look at the last part for adding `samtools`. Note that in this pipeline guide this step was integrated with the previous step 2 with `bwa`.
 
@@ -134,6 +135,6 @@ Example code:
     --min-samples-per-pop $r              #I usually like r .50 - .80
 ```
 
-You can add many more flags for different file outputs, such as `--vcf` to get a vcf file or '--hzar' for a HZAR file.
+You can add many more flags for different file outputs, such as `--vcf` to get a vcf file or `--hzar` for a HZAR file.
 
 See the file [run_populations.sh](run_populations.sh) for an example with a bunch of different flags.
