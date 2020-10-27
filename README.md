@@ -1,9 +1,9 @@
 # README - RADseq Pipeline
 Running Restriction Site associated DNA data instructions
 
-Latest update: 10/20/20
+Latest update: 10/27/20
 
-This doc is notes and instructions on the pipeline to process raw RADseq data. The provided reference scripts are the ones I actually used in my own computing cluster, but you will need to tweak them to run on your own data and in your own computing environment.
+This doc is notes and instructions on a pipeline to process raw RADseq data. The provided reference scripts are the ones I actually used in my own computing cluster, but you will need to tweak them to run on your own data and in your own computing environment.
 
 ## Overall Pipeline Summary
 
@@ -17,7 +17,6 @@ raw reads -> `process_radtags` -> `BWA` -> `samtools` -> `gstacks` -> `populatio
 
 - `stacks` version `2.x`, or `2.53` to match exactly with reference code.
 - `gcc` version `7.x`, or `7.2.0` to match exactly with reference code.
-  - TODO QUESTION `gcc` must be on the `PATH` for stacks to run?
 
 Take your raw reads (should be a `.fastq` file or `.fastq.gz` if zipped) from the sequencing facility and filter, demultiplex, and trim your raw reads using the Stacks 2 software module `process_radtags`.
 
@@ -51,17 +50,33 @@ For the script to run `process_radtags` in a computing cluster with the shorthan
 **Requirements:**
 
 - `bwa` version `0.7.x`, or `0.7.17` to match exactly reference code.
+- A reference genome, usually as a fasta.gz file
 
 > Note: If there is no reference genome, you'll need to use the denovo pipeline, also available in `stacks`.
 
-Download your reference genome. (*M. vitellinus* GenBank Accession Number `GCA_001715985.3`)
+Download your reference genome. (For my species I used: *M. vitellinus* GenBank Accession Number `GCA_001715985.3`)
 
-Use BWA mem (Li & Durbin 2009) to align your RAD reads.
+Use [BWA](http://bio-bwa.sourceforge.net/) mem (Li & Durbin 2009) to align your RAD reads. You'll first need to make a BWA reference index. 
 
-Check if [BWA](http://bio-bwa.sourceforge.net/) is installed in computing cluster.
+```bash
+#Create a BWA reference index
+bwa index /path/to/reference.fasta.gz
+
+#By default, the above command will use the name of your input FASTA file as the basename for your bwa index. You will feed this index into your next script to run bwa. If you want to change the name, use the '-p' flag such as the following: bwa index /path/to/reference.fasta.gz -p my_bwa_database.
+```
+Now that you have made your index (referred to as your 'database' in the following example), run bwa. You can follow the below sample code:
+
+```bash
+cat $sample_names_path | cut -f 2 |
+  while read sample
+  do
+    $bwa_path/bwa mem -t 2 $database_path $reads_path/${sample}.1.fq.gz $reads_path/${sample}2.fq.gz | \
+      samtools_path/samtools view -b -h | $samtools_path/samtools sort --threads 2 -o
+    $outpath/${sample}.bam
+```
 
 See the file [`bwa_alignment.sh`](bwa_alignment.sh) for an example of running `bwa`.
-Note that this script also pipes the bwa alignments directly into `samtools` in this single script; this prevents having to save the sam files!
+Note that this script and the example code pipes the bwa alignments directly into `samtools`; this prevents having to save the sam files! This script reads the sample names from the barcodes file from step 1: `process_radtags` by cutting just the samples names in column 2 and loops over each of the samples one at a time in the while loop. Every time it  generates the `bwa+samtools` command for that sample and runs them in parallel. At the end of this after using both `bwa` and `samtools` you should have a directory full of .bam files for each of your samples. 
 
 ### Step 3 - Process Aligned Reads with Samtools
 
@@ -74,15 +89,29 @@ Sort and process your aligned reads with `samtools`.
 Use samtools (Li et al. 2009). May need to install in computing cluster.
 (http://www.htslib.org/)
 
-See the file [`bwa_alignment.sh`](bwa_alignment.sh) and look at the last part for `samtools` loop.
+See the file [`bwa_alignment.sh`](bwa_alignment.sh) and look at the last part for adding `samtools`. Note that in this pipeline guide this step was integrated with the previous step 2 with `bwa`.
 
 ### Step 4 - RAD Assembly and Genotyping
 
 **Requirements:**
 
 - `stacks` (same version earlier)
+- Your sorted bam files
+- A ["population map"](https://catchenlab.life.illinois.edu/stacks/manual/#popmap)
 
-Use the Stacks 2 `gstacks` module (Rochette et al. 2019) to assemble and genotype your RAD loci.
+Use the Stacks 2 [`gstacks`](https://catchenlab.life.illinois.edu/stacks/comp/gstacks.php) module (Rochette et al. 2019) to assemble and genotype your RAD loci.
+
+Example code:
+```bash
+#!/bin/bash
+/path/to/stacks/gstacks \
+  -I /path/to/directory/with/bam/files \
+  -O /path/to/output/directory \
+  -M /path/to/popmap \                    #You will need a text file with a list of all the samples and the population they are in as two columns seperated by tabs. 
+  -t 8                                    #This is the number of threads you want for parallelizing. The default without this flag is 1
+
+#Note that this is the step where you will probably want to remove pcr duplicates if you have paired-end, single-digest RAD data. Then add the flag --rm-pcr-duplicates to the above code. 
+```
 
 ### Step 5 - Filter Genotypes and Calculate Genome Statistics
 
@@ -102,6 +131,6 @@ Example code:
     --min-samples-per-pop $r              #I usually like r .50 - .80
 ```
 
-You can add many more flags for different file outputs, such as `--vcf` to get a vcf file.
+You can add many more flags for different file outputs, such as `--vcf` to get a vcf file or '--hzar' for a HZAR file.
 
 See the file [run_populations.sh](run_populations.sh) for an example with a bunch of different flags.
