@@ -62,7 +62,9 @@ Use [BWA](http://bio-bwa.sourceforge.net/) mem (Li & Durbin 2009) to align your 
 #Create a BWA reference index
 bwa index /path/to/reference.fasta.gz
 
-#By default, the above command will use the name of your input FASTA file as the basename for your bwa index. You will feed this index into your next script to run bwa. If you want to change the name, use the '-p' flag such as the following: bwa index /path/to/reference.fasta.gz -p my_bwa_database.
+#By default, the above command will use the name of your input FASTA file as the basename for your bwa index.
+#You will feed this index into your next script to run bwa. If you want to change the name, use the '-p' flag 
+#such as the following: bwa index /path/to/reference.fasta.gz -p my_bwa_database.
 ```
 Now that you have made your index (referred to as your 'database' in the following example), run bwa. You can follow the below sample code:
 
@@ -99,7 +101,7 @@ See the file [`bwa_alignment.sh`](bwa_alignment.sh) and look at the last part fo
 - Your sorted bam files
 - A ["population map"](https://catchenlab.life.illinois.edu/stacks/manual/#popmap)
 
-Use the Stacks 2 [`gstacks`](https://catchenlab.life.illinois.edu/stacks/comp/gstacks.php) module (Rochette et al. 2019) to assemble and genotype your RAD loci.
+Use the Stacks 2 [`gstacks`](https://catchenlab.life.illinois.edu/stacks/comp/gstacks.php) module (Rochette et al. 2019) to assemble and genotype your RAD loci. Note that you will need to make a population map (or popmap) that is a list of all samples and the population they are in as two columns seperated by tabs. (If you don't want to seperate your samples into populations, then you can put all samples in 1 population by putting the same name in the population column for every sample).
 
 Example code:
 ```bash
@@ -107,10 +109,11 @@ Example code:
 /path/to/stacks/gstacks \
   -I /path/to/directory/with/bam/files \
   -O /path/to/output/directory \
-  -M /path/to/popmap \                    #You will need a text file with a list of all the samples and the population they are in as two columns seperated by tabs. 
+  -M /path/to/popmap \                     
   -t 8                                    #This is the number of threads you want for parallelizing. The default without this flag is 1
 
-#Note that this is the step where you will probably want to remove pcr duplicates if you have paired-end, single-digest RAD data. Then add the flag --rm-pcr-duplicates to the above code. 
+#Note that this is the step where you will probably want to remove pcr duplicates 
+#if you have paired-end, single-digest RAD data. Then add the flag --rm-pcr-duplicates to the above code. 
 ```
 
 ### Step 5 - Filter Genotypes and Calculate Genome Statistics
