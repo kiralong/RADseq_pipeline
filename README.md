@@ -45,6 +45,13 @@ This file should be 2 columns. The first column is the 7 bp barcode and the 2nd 
 
 For the script to run `process_radtags` in a computing cluster with the shorthand flags, see [`run_process_radtags.sh`](run_process_radtags.sh). This was used for the first *Manacus vitellinus* run.
 
+After running `process_radtags` I suggest taking a look at your raw reads and the quality of your data so far. Run the following commands to extract two tables that you can paste into `Excel`  to see how your library is doing as far as how many raw reads you have, how many reads are missing adaptors, etc. 
+
+```bash
+stacks-dist-extract process_radtags.raw.log total_raw_read_counts
+stacks-dist-extract process_radtags.raw.log per_barcode_raw_read_counts
+```
+
 ### Step 2 - Align RAD Data to Reference Genome
 
 **Requirements:**
@@ -116,6 +123,15 @@ Example code:
 #Note that this is the step where you will probably want to remove pcr duplicates 
 #if you have paired-end, single-digest RAD data. Then add the flag --rm-pcr-duplicates to the above code. 
 ```
+After running `gstacks`, you should look take a moment run some general stats to see how your data is looking. `Stacks` has some built in functions to pull helpful data from the `gstacks` logs. I recommend at this point looking at your library's per sample coverage and pcr duplicates. Run the following command in the directory with the `gstacks` output and paste the table into `Excel` to look at mean, median, standard deviation, min, and max to help you gauge the overall quality of your library. As a general rule of thumb, you want each sample's coverage to be above 7x coverage. You also want your samples to have low  pcr-duplicates, although an exact cutoff is hard to say. In my 2021-2022 libraries, my samples had a pcr-duplicate rate of about 40%. Samples with below 7x coverage should probably be dropped from the analysis and are candidates for resequencing. 
+
+```bash
+stacks-dist-extract gstacks.log.distribs effective_coverages_per_sample
+```
+You can also optionally run the following command to look at the general stats of your bam files.
+```bash
+stacks-dist-extract gstacks.log.distribs bam_stats_per_sample
+```
 
 ### Step 5 - Filter Genotypes and Calculate Genome Statistics
 
@@ -138,3 +154,12 @@ Example code:
 You can add many more flags for different file outputs, such as `--vcf` to get a vcf file or `--hzar` for a HZAR file.
 
 See the file [run_populations.sh](run_populations.sh) for an example with a bunch of different flags.
+
+After running populations, I suggest checking the amount of missing data in your samples. Run the following command and paste the resulting table in `Excel` to assess the average, median, and standard deviation of missing data in your dataset.
+
+```bash
+stacks-dist-extract populations.log.distribs loci_per_sample
+```
+### Further resources
+
+If you need another, more indepth, resource for running the RADseq pipeline, see the following [protocol paper](https://t.co/4tmjVw20Ke) by Rivera-Colon & Catchen (2021).
